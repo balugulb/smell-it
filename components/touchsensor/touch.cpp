@@ -5,7 +5,7 @@
 #include "esp_sleep.h"
 
 
-static bool touched;
+volatile bool touched = false;
 static uint32_t start_value;
 
 static void calibrate_touch_pad(touch_pad_t pad)

@@ -7,7 +7,7 @@
  * Handles LCD updates, TCP communication, and deep sleep logic.
  */
 
- // my components
+/* needed components */
 #include "Adafruit_ST7735.h"
 #include "touch.h"
 
@@ -20,6 +20,7 @@ extern "C" {
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
+#include "nvs.h"
 #include "nvs_flash.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
@@ -52,11 +53,26 @@ void app_main(void);
 #define TFT_RST        21 
 #define TFT_DC         22
 
+/* TFT message buffer parameters*/
+#define TFT_MSG_SIZE 128
+#define TFT_QUEUE_LENGTH 5
+
+/* TFT text field parameters*/
+#define TEXT_X 20
+#define TEXT_Y 12
+#define TEXT_W 88
+#define TEXT_H 24
+
+/* WIFI default values*/
+#define DEFAULT_SSID "WIFI_ESP"
+#define DEFAULT_PASSWORD "87654321"
+
 /** @brief Logging tag for WiFi and display messages */
 static const char *TAG = "WIFI-DISPLAY";
 
-/** @brief Message buffer for TFT display */
+/** @brief Handle for message buffer */
 DMA_ATTR char msg_tft[128] = "Hello";
+static QueueHandle_t tftQueue;
 
 /** @brief RTC memory for deep sleep tracking */
 static RTC_DATA_ATTR struct timeval sleep_enter_time;
@@ -115,22 +131,19 @@ static void deep_sleep_task(void *args)
  * @param parameter Unused
  */
 static void task_lcd_transfer(void *parameter) {
+    char msg[TFT_MSG_SIZE];
+   
+    // Init screen (all black)
     tft.fillRect(0,0,128,160, ST7735_BLACK);
-    tft.setCursor(20,14);
-    tft.setTextSize(3);
-    tft.setTextColor(ST77XX_GREEN);  
-    tft.print(msg_tft);
-    uint32_t ulEventsToProcess;
+
     while(1) {
-        ulEventsToProcess = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        if( ulEventsToProcess != 0) {
-            tft.fillRect(0,0,128,160, ST7735_BLACK);
-            tft.setCursor(20,14);
+        if(xQueueReceive(tftQueue, &msg, portMAX_DELAY)) {
+            tft.fillRect(0, 0, 128, 160, ST7735_BLACK);
+            tft.setCursor(TEXT_X, TEXT_Y);
             tft.setTextSize(3);
             tft.setTextColor(ST77XX_GREEN);  
-            tft.print(msg_tft);
+            tft.print(msg);
         }
-
     }
 }
 
@@ -143,13 +156,13 @@ static void task_lcd_transfer(void *parameter) {
  * @param input Input TCP message
  * @param output Output buffer for TFT
  */
-static void filter_tcp_msg(char* input, char* output) {
-    memset(msg_tft, 0, sizeof(msg_tft));
-    int i = 0;
-    while (input[i] != '\n') {
+static void filter_tcp_msg(char* input, char* output, size_t output_size) {
+    size_t i = 0;
+    while (i < output_size - 1 && input[i] != '\n' && input[i] != '\0') {
+        output[i] = input[i];
         i++;
     }
-    memcpy(output, input, i);    
+    output[i] = '\0';
  }
 
 
@@ -164,7 +177,8 @@ static void filter_tcp_msg(char* input, char* output) {
 static void do_retransmit(const int sock)
 {
     int len;
-    char rx_buffer[128];
+    char rx_buffer[TFT_MSG_SIZE];
+    char msg[TFT_MSG_SIZE];
 
     do {
         len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0);
@@ -173,9 +187,11 @@ static void do_retransmit(const int sock)
         } else if (len == 0) {
             ESP_LOGW(TAG, "Connection closed");
         } else {
-            filter_tcp_msg(rx_buffer, msg_tft);
-            xTaskNotifyGive(taskLcdTransfer);
-            rx_buffer[len] = 0; // Null-terminate whatever is received and treat it like a string
+            rx_buffer[len] = '\0'; // Null-terminate whatever is received and treat it like a string
+            filter_tcp_msg(rx_buffer, msg, TFT_MSG_SIZE);;
+            if(xQueueSend(tftQueue, &rx_buffer, portMAX_DELAY) != pdPASS) {
+                ESP_LOGW(TAG, "Failed to enqueue TFT message");
+            }
             ESP_LOGI(TAG, "Received %d bytes: %s", len, rx_buffer);
 
             // send() can return less bytes than supplied length.
@@ -331,57 +347,119 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
 
 
 /**
+ * @brief Initialize NVS and WiFi configuration
+ * 
+ * If no SSID/password are stored, defaults are written to NVS.
+ */
+void init_wifi_config() {
+    // NVS init
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    // Open NVS
+    nvs_handle_t my_handle;
+    ESP_ERROR_CHECK(nvs_open("wifi_config", NVS_READWRITE, &my_handle));
+
+    // Check for existing SSID
+    size_t ssid_len = 0;
+    ret = nvs_get_str(my_handle, "ssid", NULL, &ssid_len);
+    if (ret == ESP_ERR_NVS_NOT_FOUND) {
+        // Write WIFI default values
+        ESP_ERROR_CHECK(nvs_set_str(my_handle, "ssid", DEFAULT_SSID));
+        ESP_ERROR_CHECK(nvs_set_str(my_handle, "password", DEFAULT_PASSWORD));
+        ESP_ERROR_CHECK(nvs_commit(my_handle));
+        ESP_LOGI("WiFi", "Default WiFi credentials written to NVS");
+    }
+
+    nvs_close(my_handle);
+}
+
+
+/**
+ * @brief Load WiFi SSID and password from NVS
+ */
+void load_wifi_config(char* ssid, size_t ssid_len, char* password, size_t pass_len) {
+    nvs_handle_t my_handle;
+    ESP_ERROR_CHECK(nvs_open("wifi_config", NVS_READONLY, &my_handle));
+
+    ESP_ERROR_CHECK(nvs_get_str(my_handle, "ssid", ssid, &ssid_len));
+    ESP_ERROR_CHECK(nvs_get_str(my_handle, "password", password, &pass_len));
+
+    nvs_close(my_handle);
+}
+
+/**
  * @brief Initializes WiFi SoftAP
  *
  * Sets up network interface, event loop, and starts WiFi access point.
  */
 void wifi_init_softap(void)
 {
+    ESP_LOGI(TAG, "Initializing WiFi SoftAP...");
+
+    // Basic system init 
     ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_create_default_wifi_ap();
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
-                                                        ESP_EVENT_ANY_ID,
-                                                        &wifi_event_handler,
-                                                        NULL,
-                                                        NULL));
-
-    wifi_config_t wifi_config = {
-        .ap = {
-            .ssid = "WIFI-ESP",
-            .password = "87654321",
-            .ssid_len = strlen("WIFI-ESP"),
-            .channel = 1,
-#ifdef CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT
-            .authmode = WIFI_AUTH_WPA3_PSK,
-            //.sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-#else /* CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT */
-            .authmode = WIFI_AUTH_WPA2_PSK,
-#endif
-            .max_connection = 4,
-
-            .pmf_cfg = {
-                    .required = true,
-            },
-#ifdef CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT
-            .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-#endif
-        },
-    };
-    if (strlen("87654321") == 0) {
-        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+    // Event loop check
+    static bool event_loop_created = false;
+    if (!event_loop_created) {
+        ESP_ERROR_CHECK(esp_event_loop_create_default());
+        event_loop_created = true;
     }
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    // Create WIFI netif
+    esp_netif_create_default_wifi_ap();
 
-    ESP_LOGI(TAG, "wifi_init_softap finished. SSID:%s password:%s channel:%d",
-             "WIFI-ESP", "87654321", 1);
+    // WIFI init config
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    esp_err_t ret = esp_wifi_init(&cfg);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "esp_wifi_init() failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    // Event handler
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, NULL));
+
+    // Load WIFI config
+    char ssid[32];
+    char password[64];
+    load_wifi_config(ssid, sizeof(ssid), password, sizeof(password));
+
+    wifi_config_t wifi_config = {0};
+    strncpy((char *)wifi_config.ap.ssid, ssid, sizeof(wifi_config.ap.ssid));
+    strncpy((char *)wifi_config.ap.password, password, sizeof(wifi_config.ap.password));
+    wifi_config.ap.ssid_len = (uint8_t)strlen(ssid);
+    wifi_config.ap.channel = 1;
+    wifi_config.ap.max_connection = 4;
+    wifi_config.ap.authmode = strlen(password) >= 8 ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
+    wifi_config.ap.pmf_cfg.required = true;
+
+    // Set mode to AP
+    ret = esp_wifi_set_mode(WIFI_MODE_AP);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "esp_wifi_set_mode failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ret = esp_wifi_set_config(WIFI_IF_AP, &wifi_config);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "esp_wifi_set_config failed: %s", esp_err_to_name(ret));
+        return;
+    }
+    // Start WIFI
+    ret = esp_wifi_start();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "esp_wifi_start failed: %s", esp_err_to_name(ret));
+        return;
+    }
+
+    ESP_LOGI(TAG, "SoftAP started successfully. SSID: %s  PASSWORD: %s", ssid, password);
 }
 
 
@@ -414,19 +492,16 @@ static void statTask (void *param) {
  */
 void app_main(void)
 {
-    //Initialize NVS
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
-    ESP_LOGI(TAG, "ESP_WIFI_MODE_AP");
+    init_wifi_config();
     wifi_init_softap();
     my_touch_init();
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-    tft.initR(INITR_BLACKTAB);  
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    tft.initR(INITR_BLACKTAB);
+    tftQueue = xQueueCreate(TFT_QUEUE_LENGTH, TFT_MSG_SIZE);
+    if (tftQueue == NULL) {
+        ESP_LOGE(TAG, "Failed to create TFT message queue");
+    }
+  
     xTaskCreate(&task_lcd_transfer, "Blink LCD", 4096, NULL, 1, &taskLcdTransfer); 
     xTaskCreate(tcp_server_task, "tcp_server", 4096, (void*)AF_INET, 5, NULL);
     xTaskCreate(deep_sleep_task,"deep sleep task", 4096, NULL, 6, NULL);
