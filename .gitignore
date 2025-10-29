@@ -1,0 +1,69 @@
+.pioenvs
+.piolibdeps
+# Prerequisites
+*.d
+
+# Log files
+*.log
+*.ninja_log
+build/log/
+*.out
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Build output
+build/
+bin/
+obj/
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Temp files
+*.tmp
+*.temp
+
+# Kernel Module Compile Results
+*.mod*
+*.cmd
+.tmp_versions/
+modules.order
+Module.symvers
+Mkfile.old
+dkms.conf
