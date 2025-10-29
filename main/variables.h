@@ -5,9 +5,12 @@
 
 
 /* ST7735 connected Pins*/
-#define TFT_CS        5
+#define TFT_CS          5
 #define TFT_RST        21 
 #define TFT_DC         22
+
+/* ESP32 touch pin*/
+#define TOUCH_PAD_GPIO4_CHANNEL TOUCH_PAD_NUM0 
 
 /* TFT message buffer parameters*/
 #define TFT_MSG_SIZE 128
