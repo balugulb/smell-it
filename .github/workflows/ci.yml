@@ -1,0 +1,58 @@
+name: CI Build
+
+on:
+  push:
+    branches:
+      - mq2
+  pull_request:
+    branches:
+      - mq2
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Repository auschecken
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive  # wichtig, falls du Submodule verwendest
+
+      # 2️⃣ Python einrichten
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # 3️⃣ ESP-IDF einrichten
+      - name: Set up ESP-IDF
+        uses: espressif/install-esp-idf-action@v1
+        with:
+          version: v5.3.2
+
+      # 4️⃣ Cache für Tools und Build-Artefakte
+      - name: Cache ESP-IDF tools and build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.espressif
+            build
+          key: ${{ runner.os }}-idf-${{ hashFiles('**/CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-idf-
+
+      # 6️⃣ ESP-IDF Python-Abhängigkeiten installieren
+      - name: Install ESP-IDF Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r $IDF_PATH/requirements.txt
+
+      # 7️⃣ Build vorbereiten
+      - name: Initialize project
+        run: idf.py reconfigure
+
+      # 8️⃣ Projekt bauen
+      - name: Build project
+        run: idf.py build
+
