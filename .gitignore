@@ -17,6 +17,7 @@ build/log/
 
 # Build output
 build/
+managed_components/
 bin/
 obj/
 
