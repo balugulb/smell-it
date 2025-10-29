@@ -42,12 +42,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-idf-
 
-      # 6️⃣ ESP-IDF Python-Abhängigkeiten installieren
-      - name: Install ESP-IDF Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r $IDF_PATH/requirements.txt
-
       # 7️⃣ Build vorbereiten
       - name: Initialize project
         run: idf.py reconfigure
