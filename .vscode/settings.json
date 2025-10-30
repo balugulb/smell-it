@@ -14,5 +14,6 @@
   "files.associations": {
     "format": "cpp",
     "esp_sleep.h": "c"
-  }
+  },
+  "idf.port": "/dev/ttyS0"
 }
