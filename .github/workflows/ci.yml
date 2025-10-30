@@ -50,23 +50,9 @@ jobs:
       - name: Build project
         run: idf.py build
 
-      # 9️⃣ Firmware in firmware/ Ordner kopieren
-      - name: Copy firmware to firmware folder
-        run: |
-          mkdir -p firmware
-          cp build/*.bin firmware/
-          cp -r build/bootloader firmware/bootloader || true
-          cp -r build/partition_table firmware/partition_table || true
-
-      # 🔟 Git Config für Action
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      # Commit & Push Firmware
-      - name: Commit firmware binaries
-        run: |
-          git add firmware/
-          git commit -m "Update firmware binaries [skip ci]" || echo "No changes to commit"
-          git push
+      # 9️⃣ Firmware erstellen
+      - name: Upload firmware as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmellIT-bin
+          path: build/*.bin
