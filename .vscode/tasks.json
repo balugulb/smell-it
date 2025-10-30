@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flash downloaded Firmware + Monitor",
+      "type": "shell",
+      "command": "esptool.py --chip esp32 --port COM3 --baud 460800 write_flash 0x1000 bootloader/bootloader.bin 0x8000 partition_table/partition-table.bin 0x10000 SmellIT.bin && idf.py -p COM3 monitor",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/firmware"
+      }
+    }
+  ]
+}
