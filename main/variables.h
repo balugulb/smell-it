@@ -29,8 +29,18 @@
 #define TEXT_W 88
 #define TEXT_H 24
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /** @brief Handle for message buffer */
 extern QueueHandle_t tftQueue;
 
 /** @brief Init msg queue */
 void init_tft_queue();
+
+#ifdef __cplusplus
+}
+#endif

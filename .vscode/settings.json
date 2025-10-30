@@ -12,6 +12,7 @@
   "idf.flashType": "UART",
   "idf.portWin": "COM3",
   "files.associations": {
-    "format": "cpp"
+    "format": "cpp",
+    "esp_sleep.h": "c"
   }
 }

@@ -4,12 +4,10 @@
 #include "esp_log.h"
 #include "lwip/sockets.h"
 #include "lwip/netdb.h"
-#include <string.h>
-#include "variables.h"
-
 #include "lwip/err.h"
 #include "lwip/sys.h"
-
+#include <string.h>
+#include "variables.h"
 
 /** @brief Logging tag for tcp_server*/
 static const char *TAG = "tcp";

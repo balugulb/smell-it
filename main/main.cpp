@@ -8,13 +8,15 @@
  */
 
 /* needed components */
+extern "C" {
 #include "touch.h"
 #include "wifi_manager.h"
 #include "tcp_server.h"
+#include "deepsleep.h"    
+}
+
 #include "display.h"
 #include "variables.h"
-#include "deepsleep.h"
-
 
 /**
  * @brief Application entry point
