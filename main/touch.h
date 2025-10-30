@@ -1,5 +1,8 @@
-#ifndef TOUCH_H
-#define TOUCH_H
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif    
 
 #include "variables.h"
 
@@ -44,4 +47,6 @@ void my_touch_tresh();
 
 void my_touch_read(void *parameters);
 
-#endif // TOUCH_H
+#ifdef __cplusplus
+}
+#endif
