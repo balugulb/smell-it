@@ -52,7 +52,7 @@ jobs:
 
       # Firmware
       - name: Upload firmware as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: SmellIT-bin
           path: build/*.bin
