@@ -48,39 +48,19 @@ This repository is a personal IoT hobby project focused on experimenting with di
 | 21        | RESET      |
 
 ```mermaid
-graph TD
-    subgraph ESP32 DevKit V2
-        GND
-        V5V[5V]
-        V3V[3V3]
-        GPIO23[GPIO 23 (MOSI)]
-        GPIO18[GPIO 18 (SCK)]
-        GPIO5[GPIO 5 (CS)]
-        GPIO22[GPIO 22 (DC/A0)]
-        GPIO21[GPIO 21 (RESET)]
-    end
+flowchart LR
+    ESP32["ESP32 DevKit V2<br/>Wi-Fi / MCU"]
+    TFT["ST7735 TFT<br/>SPI Display"]
 
-    subgraph ST7735 TFT
-        TFT_GND[GND]
-        TFT_VCC[VCC]
-        TFT_LED[LED]
-        TFT_MOSI[SDA / MOSI]
-        TFT_SCK[SCK]
-        TFT_CS[CS]
-        TFT_DC[DC / A0]
-        TFT_RST[RESET]
-    end
-
-    GND --> TFT_GND
-    V5V --> TFT_VCC
-    V3V --> TFT_LED
-
-    GPIO23 --> TFT_MOSI
-    GPIO18 --> TFT_SCK
-    GPIO5 --> TFT_CS
-    GPIO22 --> TFT_DC
-    GPIO21 --> TFT_RST
+    ESP32 -->|"MOSI — GPIO23"| TFT
+    ESP32 -->|"CLK — GPIO18"| TFT
+    ESP32 -->|"CS — GPIO5"| TFT
+    ESP32 -->|"DC — GPIO22"| TFT
+    ESP32 -->|"RES — GPIO21"| TFT
+    ESP32 -->|"LED — 3V3"| TFT
+    ESP32 -->|"GND"| TFT
 ```
+
 
 ## 🚀 Getting Started (VS Code + ESP-IDF)
 
