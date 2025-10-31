@@ -47,20 +47,6 @@ This repository is a personal IoT hobby project focused on experimenting with di
 | 22        | A0 / DC    |
 | 21        | RESET      |
 
-```mermaid
-flowchart LR
-    ESP32["ESP32 DevKit V2<br/>Wi-Fi / MCU"]
-    TFT["ST7735 TFT<br/>SPI Display"]
-
-    ESP32 -->|"MOSI — GPIO23"| TFT
-    ESP32 -->|"CLK — GPIO18"| TFT
-    ESP32 -->|"CS — GPIO5"| TFT
-    ESP32 -->|"DC — GPIO22"| TFT
-    ESP32 -->|"RES — GPIO21"| TFT
-    ESP32 -->|"LED — 3V3"| TFT
-    ESP32 -->|"GND"| TFT
-```
-
 
 ## 🚀 Getting Started (VS Code + ESP-IDF)
 
