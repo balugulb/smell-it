@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flash downloaded Firmware",
+      "type": "shell",
+      "command": "python -m esptool --chip esp32 --port COM3 --baud 460800 write_flash 0x10000 SmellIT.bin",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/firmware"
+      }
+    }
+  ]
+}

@@ -50,3 +50,9 @@ jobs:
       - name: Build project
         run: idf.py build
 
+      # 9️⃣ Firmware erstellen
+      - name: Upload firmware as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SmellIT-bin
+          path: build/*.bin

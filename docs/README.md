@@ -37,4 +37,3 @@ This project is based on:
 - **Language:** C/C++ (with `extern "C"` interop for ESP-IDF)  
 - **Target:** esp32
 
-**ESP-IDF Website:** [here] https://docs.espressif.com/projects/esp-idf/en/stable/esp32/index.html
