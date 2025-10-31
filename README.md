@@ -24,6 +24,64 @@ This repository is a personal IoT hobby project focused on experimenting with di
 | ESP32 Touch Pad      | User input / wake  |
 | USB 5V supply        | Power              |
 
+## 🖥️ Hardware & Wiring
+
+| Component       | Model               |
+| --------------- | ------------------- |
+| Microcontroller | ESP32 DevKit V2     |
+| Display         | ST7735 1.8" SPI TFT |
+| Gas sensor      | MQ-2                |
+| Touch           | None                |
+
+### Wiring Diagram
+
+
+| ESP32 Pin | ST7735 Pin |
+| --------- | ---------- |
+| GND       | GND        |
+| 5V        | VCC        |
+| 3V3       | LED        |
+| 23        | SDA / MOSI |
+| 18        | SCK        |
+| 5         | CS         |
+| 22        | A0 / DC    |
+| 21        | RESET      |
+
+```mermaid
+graph TD
+    subgraph ESP32 DevKit V2
+        GND
+        V5V[5V]
+        V3V[3V3]
+        GPIO23[GPIO 23 (MOSI)]
+        GPIO18[GPIO 18 (SCK)]
+        GPIO5[GPIO 5 (CS)]
+        GPIO22[GPIO 22 (DC/A0)]
+        GPIO21[GPIO 21 (RESET)]
+    end
+
+    subgraph ST7735 TFT
+        TFT_GND[GND]
+        TFT_VCC[VCC]
+        TFT_LED[LED]
+        TFT_MOSI[SDA / MOSI]
+        TFT_SCK[SCK]
+        TFT_CS[CS]
+        TFT_DC[DC / A0]
+        TFT_RST[RESET]
+    end
+
+    GND --> TFT_GND
+    V5V --> TFT_VCC
+    V3V --> TFT_LED
+
+    GPIO23 --> TFT_MOSI
+    GPIO18 --> TFT_SCK
+    GPIO5 --> TFT_CS
+    GPIO22 --> TFT_DC
+    GPIO21 --> TFT_RST
+```
+
 ## 🚀 Getting Started (VS Code + ESP-IDF)
 
 ### Make sure you have:
