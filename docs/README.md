@@ -35,6 +35,5 @@ This project is based on:
 - **ESP-IDF:** v5.3.2  
 - **PlatformIO:** ESP32 platform  
 - **Language:** C/C++ (with `extern "C"` interop for ESP-IDF)  
-- **Target:** ESP32esp32
+- **Target:** esp32
 
-**ESP-IDF Website:** [here] https://docs.espressif.com/projects/esp-idf/en/stable/esp32/index.html
