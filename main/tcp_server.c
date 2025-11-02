@@ -47,6 +47,8 @@ static void do_retransmit(const int sock)
     int len;
     char rx_buffer[TFT_MSG_SIZE];
     char msg[TFT_MSG_SIZE];
+    display_msg_t disp_msg;
+    disp_msg.type = MSG_TCP;
 
     do {
         len = recv(sock, rx_buffer, sizeof(rx_buffer) - 1, 0);
@@ -56,8 +58,10 @@ static void do_retransmit(const int sock)
             ESP_LOGW(TAG, "Connection closed");
         } else {
             rx_buffer[len] = '\0'; // Null-terminate whatever is received and treat it like a string
-            filter_tcp_msg(rx_buffer, msg, TFT_MSG_SIZE);;
-            if(xQueueSend(tftQueue, &rx_buffer, portMAX_DELAY) != pdPASS) {
+            filter_tcp_msg(rx_buffer, msg, TFT_MSG_SIZE);
+            strncpy(disp_msg.data.tcp_msg, msg, TFT_MSG_SIZE);
+            disp_msg.data.tcp_msg[TFT_MSG_SIZE-1] = '\0';
+            if(xQueueSend(displayQueue, &disp_msg, 0) != pdTRUE) {
                 ESP_LOGW(TAG, "Failed to enqueue TFT message");
             }
             ESP_LOGI(TAG, "Received %d bytes: %s", len, rx_buffer);

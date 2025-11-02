@@ -32,18 +32,29 @@ void display_init(void){
  * @param parameter Unused
  */
 static void task_lcd_transfer(void *parameter) {
-    char msg[TFT_MSG_SIZE];
+    display_msg_t display_msg;
    
     // Init screen (all black)
     tft.fillRect(0,0,128,160, ST7735_BLACK);
 
     while(1) {
-        if(xQueueReceive(tftQueue, &msg, portMAX_DELAY)) {
-            tft.fillRect(0, 0, 128, 160, ST7735_BLACK);
-            tft.setCursor(TEXT_X, TEXT_Y);
-            tft.setTextSize(3);
-            tft.setTextColor(ST77XX_GREEN);  
-            tft.print(msg);
+        if(xQueueReceive(displayQueue, &display_msg, portMAX_DELAY)) {
+
+            if(display_msg.type == MSG_TCP) {
+                tft.fillRect(TEXT_TCP_X, TEXT_TCP_Y, TEXT_TCP_WIDTH, TEXT_TCP_HEIGHT, ST7735_BLACK);
+                tft.setCursor(TEXT_TCP_X + 5, TEXT_TCP_Y + 5);
+                tft.setTextSize(3);
+                tft.setTextColor(ST77XX_GREEN);  
+                tft.print(display_msg.data.tcp_msg);
+            }
+
+            if(display_msg.type == MSG_MQ2) {
+                tft.fillRect(TEXT_MQ2_X, TEXT_MQ2_Y, TEXT_MQ2_WIDTH, TEXT_MQ2_HEIGHT, ST7735_BLACK);
+                tft.setCursor(TEXT_MQ2_X, TEXT_MQ2_Y);
+                tft.setTextSize(2);
+                tft.setTextColor(ST77XX_RED);
+                tft.printf("LPG:%.1f\nCO:%.1f\nSMK:%.1f", display_msg.data.mq2.lpg, display_msg.data.mq2.co, display_msg.data.mq2.smoke);
+            }
         }
     }
 }

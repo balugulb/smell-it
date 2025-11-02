@@ -1,4 +1,5 @@
 #include "wifi_manager.h"
+#include "variables.h"
 #include "esp_wifi.h"
 #include "esp_mac.h"
 #include "esp_event.h"
@@ -7,9 +8,6 @@
 #include "nvs_flash.h"
 #include <string.h>
 
-/* Default WiFi credentials */
-#define DEFAULT_SSID "WIFI_ESP"
-#define DEFAULT_PASSWORD "87654321"
 
 /** @brief Logging tag for wifi_manager */
 static const char *TAG = "wifi";
